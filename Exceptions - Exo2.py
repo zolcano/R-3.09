@@ -1,3 +1,4 @@
+#Pour ce script, le fichier 'Ressource 1.txt' trouvable dans le même repository est requis.
 def ReadFile(file):
     try:
         open(file)
