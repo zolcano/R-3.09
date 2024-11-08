@@ -1,5 +1,7 @@
-#Pour ce script, le fichier 'Ressource 1.txt' trouvable dans le même repository est requis.
+#Pour ce script, le fichier 'Ressource 1.txt' trouvable dans le même repository est requis, et placé dans le même répertoire.
+import os
 def ReadFile(file):
+    file = os.path.join(os.path.dirname(__file__), file)
     try:
         open(file)
     except FileNotFoundError:
@@ -18,4 +20,4 @@ def ReadFile(file):
             return r
 
 if __name__== "__main__":
-    print(ReadFile("C:/Users/knobl/Desktop/fichier.txt"))
+    print(ReadFile("Ressource 1.txt"))
