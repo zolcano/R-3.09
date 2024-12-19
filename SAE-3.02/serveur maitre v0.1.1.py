@@ -28,14 +28,14 @@ def Console():
             if len(liste_serveur) == 0:
                 print("[CONSOLE] Aucun serveur esclave est connecté.")
             for x in liste_serveur:
-                print(f"[CONSOLE] connecté à l'addresse {x[1][0]}:{x[1][1]}.")
+                print(f"[CONSOLE] serveur esclave connecté à l'addresse {x[1][0]}:{x[1][1]}.")
 
         if commande.lower() == '/client list':
             ack = True
             if len(liste_client) == 0:
                 print("[CONSOLE] Aucun client est connecté.")
             for x in liste_client:
-                print(f"[CONSOLE] connecté à l'addresse {x[1][0]}:{x[1][1]}.")
+                print(f"[CONSOLE] client connecté à l'addresse {x[1][0]}:{x[1][1]}.")
                 
         if commande.lower() == '/stop':
             ack = True
@@ -46,9 +46,12 @@ def Console():
             if commande[-3:].lower() == 'all':
                 ack = True
                 for x in liste_serveur[::-1]:
-                    print(f"[CONSOLE] serveur esclave {x[1][0]}:{x[1][1]} déconnecté.")
-                    x[0].send('/arret'.encode("utf-8"))
-                    x[0].close()
+                    try:
+                        x[0].send('/arret'.encode("utf-8"))
+                        print(f"[CONSOLE] serveur esclave {x[1][0]}:{x[1][1]} déconnecté.")
+                        x[0].close()
+                    except:
+                        print(f"[ERREUR] serveur esclave {x[1][0]}:{x[1][1]} introuvable, suppression.")
                     liste_serveur.remove(x)
             else:
                 ack = True
@@ -61,10 +64,13 @@ def Console():
                 t = False
                 for x in liste_serveur:
                     if (x[1][0] == args[0]) and (x[1][1] == args[1]):
-                        print(f"[CONSOLE] serveur esclave {args[0]}:{args[1]} déconnecté.")
                         t = True
-                        x[0].send('/arret'.encode("utf-8"))
-                        x[0].close()
+                        try:
+                            x[0].send('/arret'.encode("utf-8"))
+                            print(f"[CONSOLE] serveur esclave {args[0]}:{args[1]} déconnecté.")
+                            x[0].close()
+                        except:
+                            print("[ERREUR] serveur esclave introuvable, suppression.")
                         liste_serveur.remove(x)
                     if t == False:
                         print("[ERREUR] Couple IP/PORT non trouvé.")
@@ -73,9 +79,12 @@ def Console():
             if commande[-3:].lower() == 'all':
                 ack = True
                 for x in liste_client[::-1]:
-                    print(f"[CONSOLE] client {x[1][0]}:{x[1][1]} déconnecté.")
-                    x[0].send('/arret'.encode("utf-8"))
-                    x[0].close()
+                    try:
+                        x[0].send('/arret'.encode("utf-8"))
+                        print(f"[CONSOLE] client {x[1][0]}:{x[1][1]} déconnecté.")
+                        x[0].close()
+                    except:
+                        print(f"[ERREUR] client {x[1][0]}:{x[1][1]} introuvable, suppression.")
                     liste_client.remove(x)
             else:
                 ack = True
@@ -88,10 +97,13 @@ def Console():
                 t = False
                 for x in liste_client:
                     if (x[1][0] == args[0]) and (x[1][1] == args[1]):
-                        print(f"[CONSOLE] client {args[0]}:{args[1]} déconnecté.")
                         t = True
-                        x[0].send('/arret'.encode("utf-8"))
-                        x[0].close()
+                        try:
+                            x[0].send('/arret'.encode("utf-8"))
+                            print(f"[CONSOLE] client {args[0]}:{args[1]} déconnecté.")
+                            x[0].close()
+                        except:
+                            print(f"[ERREUR] client introuvable, suppression.")
                         liste_client.remove(x)
                     if t == False:
                         print("[ERREUR] Couple IP/PORT non trouvé.")
@@ -106,14 +118,17 @@ def Ecoute(conn, addr):
             if not message:
                 continue
             if message == '/stop':
-                print(f"[INFO] Le serveur esclave à l'addresse {addr[0]}:{addr[1]} s'est déconnecté.")
                 for x in liste_serveur:
                     if conn == x[0]:
+                        print(f"[INFO] Le serveur esclave à l'addresse {addr[0]}:{addr[1]} s'est déconnecté.")
                         liste_serveur.remove(x)
+                for x in liste_client:
+                    if conn == x[0]:
+                        print(f"[INFO] Le client à l'addresse {addr[0]}:{addr[1]} s'est déconnecté.")
+                        liste_client.remove(x)
                 conn.close()
                 break
-        except Exception as e:
-            print(e)
+        except:
             break
     return
 
@@ -128,6 +143,8 @@ def AcceptClient():
             for x in liste_client:
                 if x[0] == conn:
                     print(f"[INFO] Client connecté à l'addresse {x[1][0]}:{x[1][1]}.")
+            thECC = threading.Thread(daemon=True, target=Ecoute, args=[conn, addr]) #initialisation d'un thread d'écoute propre à la connexion
+            thECC.start()
         except socket.timeout:
             continue
         except Exception as e:
@@ -217,8 +234,11 @@ if __name__ == "__main__":
     thCONS.start()
 
     fin.wait() # attente du déclanchement de l'arrêt.
-    for x in liste_serveur:
-        x[0].send('/stop'.encode("utf-8"))
-    for x in liste_client:
-        x[0].send('/stop'.encode("utf-8"))
+    try:
+        for x in liste_serveur:
+            x[0].send('/stop'.encode("utf-8"))
+        for x in liste_client:
+            x[0].send('/stop'.encode("utf-8"))
+    except Exception as e:
+        print(f"[ERREUR] {e}.")
     sys.exit() # fermeture du programme
